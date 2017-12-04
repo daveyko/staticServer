@@ -1,0 +1,35 @@
+.flex-wrapper{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+.container{
+  display: flex;
+  justify-content: center;
+}
+
+.container-input form{
+  display: flex;
+  justify-content: center;
+}
+
+.dropzone-wrapper{
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  height: 300px;
+  box-shadow: 0px 0px 2px 2px gray;
+}
+
+#my-dropzone{
+  flex-grow: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex-direction: row;
+}
+
+.dragenter{
+  background-color: green;
+}
