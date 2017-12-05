@@ -13,23 +13,32 @@ $(() => {
   previewNode.parentNode.removeChild(previewNode)
 
 
-  const zdrop = new Dropzone('#my-dropzone', {
+  const zdrop = new Dropzone('#dropzone', {
     url: '/upload',
     previewTemplate: previewTemplate,
     previewsContainer: '#previews',
-    clickable: '#my-dropzone',
     autoProcessQueue: false,
     uploadMultiple: true,
     paramName: () => 'myFiles',
     parallelUploads: 20
   })
 
+  console.log('zdrop', zdrop)
+
   zdrop.on('dragenter', () => {
-    $('#my-dropzone').addClass('dragenter')
+    $('#dropzone').addClass('dragenter')
   })
 
   zdrop.on('dragleave', () => {
-    $('#my-dropzone').removeClass('dragenter')
+    $('#dropzone').removeClass('dragenter')
+  })
+
+  zdrop.on('drop', () => {
+    console.log('here!')
+    $('#route').css('display', 'block')
+    $('#submit').css('display', 'block')
+    $('#dropzone').addClass('dropped')
+    $('#dropzone').removeClass('dragenter')
   })
 
   function handleSubmit(e){

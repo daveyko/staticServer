@@ -3,18 +3,21 @@
   <head>
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
       <link rel="stylesheet" type='text/css' href='/homepage/style.css'>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
       <script src="/homepage/dropzone.js"></script>
+      <link href="https://fonts.googleapis.com/css?family=Barlow+Semi+Condensed" rel="stylesheet">
   </head>
 <body>
 
 <div class = "flex-wrapper">
   <div class = "container">
-      <h3>HomePage</h3>
+      <h3 id = "title">Deploy</h3>
   </div>
 
   <div class = "dropzone-wrapper" >
-    <form id = "my-dropzone">
-      <input type="text" name="route" />
+    <form id = "my-dropzone" enctype ="multipart/form-data">
+      <div id = "dropzone" name = "myFiles"></div>
+      <input type="text" name="route" id = "route" placeholder="enter route" />
       <input id = "submit" type = "submit" value = "deploy"/>
     </form>
   </div>
@@ -34,14 +37,15 @@
     </div>
   </div>
 
-  <div class = "container-input">
+  <!-- <div class = "container-input">
     <form action = "/upload" method = "POST" enctype ="multipart/form-data">
       <input name = "myFiles" type="file" id="myFiles" webkitdirectory directory multiple/>
       <input type="text" name="route" />
       <input type = "submit" value = "deploy"/>
     </form>
-  </div>
+  </div> -->
 </div>
+
   <script src="/homepage/jq.js"></script>
 </body>
 </html>
