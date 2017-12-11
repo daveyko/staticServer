@@ -10,12 +10,13 @@ const cmd = require('node-cmd')
 const mkdir = Promise.promisify(fs.mkdir)
 const stat = Promise.promisify(fs.stat)
 
-
-// app.use(bodyParser.json())
-// app.use(bodyParser.urlencoded({ extended: false}))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false}))
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log('filepathOG', file)
+    console.log('reqbody', req.body)
     if (!fs.existsSync(path.join(__dirname, '..', 'public', 'temp'))){
       fs.mkdirSync(path.join(__dirname, '..', 'public', 'temp'))
     }
@@ -23,21 +24,29 @@ const storage = multer.diskStorage({
   },
 })
 
-const upload = multer({storage}).array('myFiles')
+const ensureDirectoryExistence = (filePath, route) => {
+  const dirname = path.dirname(filePath)
+  console.log('dirname', dirname, 'route', route)
+  if (fs.existsSync(path.join(__dirname, '..', 'public', route,  dirname))){
+    return true
+  }
+  ensureDirectoryExistence(dirname, route)
+  fs.mkdirSync(path.join(__dirname, '..', 'public', route, dirname))
+}
+
+const upload = multer({storage}).any()
 
 app.use(express.static(path.join(__dirname, '..', 'public')))
-
-// app.use(formidable())
 
 app.get('/', (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public/homepage/' ))
 })
 
 app.post('/upload', upload, (req, res, next) => {
-  console.log('here!', req.body, req.files, req.routes)
+  console.log('here!', req.body, req.files)
   mkdir(path.join(__dirname, '..', 'public', req.body.route))
   .then(() => {
-  async.each(req.files, function(file, eachcallback){
+  async.forEachOf(req.files, function(file, idx, eachcallback){
     async.waterfall([
       function(callback){
         fs.readFile(file.path, (err, data) => {
@@ -48,8 +57,10 @@ app.post('/upload', upload, (req, res, next) => {
         })
       },
       function (data, callback){
-        fs.writeFile(path.join(__dirname, '..', 'public', req.body.route, file.originalname), data, (err) => {
-          if (err) {console.log('error occured', err)}
+        console.log('firstarg', req.body.fullpath[idx])
+        ensureDirectoryExistence(req.body.fullpath[idx], req.body.route)
+        fs.writeFile(path.join(__dirname, '..', 'public', req.body.route, req.body.fullpath[idx]), data, (err) => {
+          if (err) {console.log('error occured in write!', err)}
           else {
           callback(null, 'success')
         }
@@ -77,6 +88,6 @@ app.get('/public/:dirname', (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public/', req.params.dirname, '/'))
 })
 
-app.listen(8080, function() {
-  console.log('~~~~ Server listening on 8080 ~~~~');
+app.listen(3000, function() {
+  console.log('~~~~ Server listening on 3000 ~~~~');
 })
