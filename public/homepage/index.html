@@ -15,7 +15,7 @@
   </div>
 
   <div class = "dropzone-wrapper" >
-    <form id = "my-dropzone" enctype ="multipart/form-data">
+    <form id = "my-dropzone" enctype ="multipart/form-data" >
       <div id = "dropzone" name = "myFiles"></div>
       <input type="text" name="route" id = "route" placeholder="enter route" />
       <input id = "submit" type = "submit" value = "deploy"/>
@@ -25,17 +25,22 @@
   <div id = "previews">
     <div id = "template">
       <div>
-        <span><img data-dz-thumbnail /></span>
-      </div>
-      <div>
         <p data-dz-name></p>
-      </div>
-      <div>
-        <button>Submit</button>
-        <button data-dz-remove>Cancel</button>
       </div>
     </div>
   </div>
+
+  <!-- <div id = "previews2">
+    <ul id = "listing">
+    </ul>
+  </div> -->
+  </div>
+
+  <div class = "footer-wrapper">
+      <div id = "footer">
+      </div>
+  </div>
+
 
   <!-- <div class = "container-input">
     <form action = "/upload" method = "POST" enctype ="multipart/form-data">
@@ -44,7 +49,7 @@
       <input type = "submit" value = "deploy"/>
     </form>
   </div> -->
-</div>
+
 
   <script src="/homepage/jq.js"></script>
 </body>
