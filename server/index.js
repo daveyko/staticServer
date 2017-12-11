@@ -15,8 +15,6 @@ app.use(bodyParser.urlencoded({ extended: false}))
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log('filepathOG', file)
-    console.log('reqbody', req.body)
     if (!fs.existsSync(path.join(__dirname, '..', 'public', 'temp'))){
       fs.mkdirSync(path.join(__dirname, '..', 'public', 'temp'))
     }
@@ -26,7 +24,6 @@ const storage = multer.diskStorage({
 
 const ensureDirectoryExistence = (filePath, route) => {
   const dirname = path.dirname(filePath)
-  console.log('dirname', dirname, 'route', route)
   if (fs.existsSync(path.join(__dirname, '..', 'public', route,  dirname))){
     return true
   }

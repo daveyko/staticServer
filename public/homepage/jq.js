@@ -80,7 +80,6 @@ $(() => {
         div.appendChild(img)
         div.appendChild(span)
         div.addEventListener('mouseenter', (e) => {
-          console.log('el', e)
           $(e.target.firstChild).css('display', 'inline')
           $(e.target.children[1]).css('opacity', '1')
         })
@@ -137,29 +136,70 @@ $(() => {
 
     let files = []
 
-    function readDirEntries(dir){
-      let dirReader = dir.createReader()
-      dirReader.readEntries((entries) => {
-        if (!entries.length){
-          console.log('callback called!', files)
-          cb(files)
-        }
-        entries.forEach(entry => {
-          if (entry.isFile){
-            files.push(entry)
-            // entry.file((file) => {
-            //   file.fullPath = entry.fullPath
-            //   files.push(file)
-            // })
-          }
-          if (entry.isDirectory){
-            readDirEntries(entry)
-          }
-        })
-      })
+    function traverseDirectory(dir) {
+      let reader = dir.createReader();
+      // Resolved when the entire directory is traversed
+      return new Promise((resolveDirectory) => {
+          var iterationAttempts = [];
+          (function readEntries() {
+              // According to the FileSystem API spec, readEntries() must be called until
+              // it calls the callback with an empty array.  Seriously??
+              reader.readEntries((entries) => {
+                  if (!entries.length) {
+                      // Done iterating this particular directory
+                      resolveDirectory(Promise.all(iterationAttempts));
+                  } else {
+                      // Add a list of promises for each directory entry.  If the entry is itself
+                      // a directory, then that promise won't resolve until it is fully traversed.
+                      iterationAttempts.push(Promise.all(entries.map((entry) => {
+                          if (entry.isFile) {
+                            files.push(entry)
+                              // DO SOMETHING WITH FILES
+                              return entry;
+                          } else {
+                              // DO SOMETHING WITH DIRECTORIES
+                              return traverseDirectory(entry);
+                          }
+                      })));
+                      // Try calling readEntries() again for the same dir, according to spec
+                      readEntries();
+                  }
+              }, (err) => console.log('err occured!', err) );
+          })();
+      });
     }
-    readDirEntries(dirfirst)
+
+    traverseDirectory(dirfirst).then(() => {
+      console.log('traversed!', 'ALLFILES', files)
+    })
+
+    // function readDirEntries(dir){
+    //   let dirReader = dir.createReader()
+    //   dirReader.readEntries((entries) => {
+    //     console.log('entries', entries)
+    //     if (!entries.length){
+    //       console.log('cb called!')
+    //       console.log('files', files)
+    //       cb(files)
+    //     }
+    //     entries.forEach(entry => {
+    //       if (entry.isFile){
+    //         files.push(entry)
+    //         // entry.file((file) => {
+    //         //   file.fullPath = entry.fullPath
+    //         //   files.push(file)
+    //         // })
+    //       }
+    //       if (entry.isDirectory){
+    //         readDirEntries(entry)
+    //       }
+    //     })
+    //     console.log('LASTTHING!')
+    //   })
+    // }
+    // readDirEntries(dirfirst)
   }
+
 
   function entryToFile(files, cb){
     let convertedFiles = []
@@ -167,6 +207,7 @@ $(() => {
     files.forEach((entry, i) => {
       entry.file(file => {
         if (i === files.length - 1) {
+          console.log('cb2 called!')
           cb(convertedFiles)
         }
         file.fullPath = entry.fullPath
@@ -177,7 +218,7 @@ $(() => {
 
   function submitData(files){
 
-    console.log('FILES!!!', files)
+    console.log('finalfunccalled!')
     let xhr = new XMLHttpRequest()
     let formData = new FormData()
     xhr.onload = (progressevent) => {
@@ -187,8 +228,6 @@ $(() => {
     xhr.setRequestHeader( 'Accept', 'application/json')
     xhr.setRequestHeader( 'Cache-Control', 'no-cache')
     xhr.setRequestHeader( 'X-Requested-With', 'XMLHttpRequest')
-    // let filesObj = {}
-    let fullpaths = []
     for (let i = 0; i < files.length; i++){
       formData.append(`uploads${i}`, files[i])
       formData.append('fullpath[]', files[i].fullPath)
@@ -201,9 +240,10 @@ $(() => {
   $('#submit').click((e) => {
     e.preventDefault()
     console.log('clicked!')
-    createFilesArr(cwd, (files) => {
-      entryToFile(files, submitData)
-    })
+    createFilesArr(cwd)
+    // createFilesArr(cwd, (files) => {
+    //   entryToFile(files, submitData)
+    // })
   })
 
   function readDirectory(dirEntry, cb) {
@@ -215,7 +255,9 @@ $(() => {
     var readEntries = function() {
 
        dirReader.readEntries(function(results) {
+         console.log('results!', results)
         if (!results.length) {
+          console.log('entries!!!', entries)
           cb(entries)
         } else {
           entries = entries.concat(toArray(results))
@@ -267,7 +309,7 @@ $(() => {
       let item = items[i].webkitGetAsEntry()
       if (item){
         // scanFiles(item, listing)
-        item.copyTo(cwd, null, (copiedEntry) => {
+        item.copyTo(cwd, null, () => {
           renderImages(cwd)
           })
       }
