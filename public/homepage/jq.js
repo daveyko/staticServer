@@ -8,34 +8,49 @@ $(() => {
 
 
   window.webkitRequestFileSystem(window.TEMPORARY, 1024 * 1204, function(fileSystem) {
+    //fileSystem object representing the fs the app can use
     fs = fileSystem;
+
+    //FS Directory Entry object that represents the fs root dir
+    //through this object can gain access to all files and dir in the fs
     cwd = fs.root;
     renderImages(cwd)
 
-    // window.webkitResolveLocalFileSystemURL(cwd.toURL(), (entry) => {
-    //   let reader = entry.createReader()
-    //   reader.readEntries(results => {
-    //     results.forEach(result => {
-    //       if (result.isDirectory) {
-    //         console.log('isDirectory!')
-    //         result.removeRecursively(() => {
-    //           console.log('removed!')
-    //         })
-    //       }
-    //       if (result.isFile){
-    //         console.log('isFile')
-    //         result.remove(() => {
-    //           console.log('file removed!')
-    //         })
-    //       }
-    //       console.log('resUnwrapped', result)
-    //     })
-    //   })
-    // })
-
   })
 
+  function readDirectory(dirEntry, cb) {
+
+        //a fs dir reader object that is used to read entries in a directory
+        var dirReader = dirEntry.createReader();
+        var entries = [];
+
+        // Call the reader.readEntries() until no more results are returned.
+        var readEntries = function() {
+
+          //retrieves directory entries within the dir being read and delivers them in an array to the cb
+
+          //the results represents a filesystem entry object(either dir or file)
+           dirReader.readEntries(function(results) {
+
+            if (!results.length) {
+              //base case when readEntries returns an empty array which means all the fs objects in the directory have been traversed
+              cb(entries)
+            } else {
+              entries = entries.concat(toArray(results))
+              readEntries();
+            }
+          }, (err) => {
+            console.log('err occured!', err)
+          }
+        );
+        };
+        readEntries(); // Start reading dirs.
+  }
+
   function renderImages(dirEntry){
+
+    //entries is the result of dirReader.readEntries, an array of fs objects that can be either a dir or a file
+
     readDirectory(dirEntry, (entries) => {
       if (!entries.length){
         $('#route').css('display', 'none')
@@ -95,181 +110,152 @@ $(() => {
     }
   )}
 
-  function getEntry(fullpath, cb){
+  function getEntry(fullpath){
     let fsUrl = fs.root.toURL() + fullpath
-    window.webkitResolveLocalFileSystemURL(fsUrl, (entry) => {
-      if (entry.isDirectory) cwd = entry
-      cb(entry)
+    return new Promise(resolve => {
+      window.webkitResolveLocalFileSystemURL(fsUrl, (entry) => {
+        if (entry.isDirectory) cwd = entry
+        resolve(entry)
+      })
     })
+  }
+
+  function onClose(e){
+    if (e.target){
+      e.stopPropagation()
+    }
+    let el = e.target ? e.target.parentElement : e
+    getEntry(el.dataset.fullPath)
+    .then(entry => {
+      el.parentElement.removeChild(el)
+      return entry.isDirectory ? entry.removeRecursively(() => {
+        cwd = fs.root
+        $('#dropzone').removeClass('dropped')
+        $('#dropzone').removeClass('dragenter')
+        $('#route').css('display', 'none')
+        $('#submit').css('display', 'none')
+      }) : entry.remove(() => {})
+    })
+    .catch(err => console.log(err))
   }
 
   function onThumbNailClick(e){
     let el = e.target.parentElement
     if (el.className === 'nav'){
-      getEntry(cwd.fullPath + '/..', renderImages)
+      getEntry(cwd.fullPath + '/..')
+      .then(renderImages)
+      .catch(console.log)
     }
     else {
       let isDirectory = Boolean(el.dataset.isDirectory)
       if (isDirectory){
-      getEntry(el.dataset.fullPath, renderImages)
+      getEntry(el.dataset.fullPath)
+      .then(renderImages)
+      .catch(console.log)
     }
   }
 }
-
-  function onClose(e){
-    e.stopPropagation()
-    let el = e.target.parentElement
-    getEntry(el.dataset.fullPath, (entry) => {
-      el.parentElement.removeChild(el)
-      entry.isDirectory ? entry.removeRecursively(() => {
-        renderImages(fs.root)
-      }) : entry.remove(() => {
-      })
-    })
-  }
 
   function toArray(list) {
     return Array.prototype.slice.call(list || [], 0);
   }
 
-  function createFilesArr(dirfirst, cb){
 
-    let files = []
-
-    function traverseDirectory(dir) {
-      let reader = dir.createReader();
-      // Resolved when the entire directory is traversed
-      return new Promise((resolveDirectory) => {
-          var iterationAttempts = [];
-          (function readEntries() {
-              // According to the FileSystem API spec, readEntries() must be called until
-              // it calls the callback with an empty array.  Seriously??
-              reader.readEntries((entries) => {
-                  if (!entries.length) {
-                      // Done iterating this particular directory
-                      resolveDirectory(Promise.all(iterationAttempts));
-                  } else {
-                      // Add a list of promises for each directory entry.  If the entry is itself
-                      // a directory, then that promise won't resolve until it is fully traversed.
-                      iterationAttempts.push(Promise.all(entries.map((entry) => {
-                          if (entry.isFile) {
-                            files.push(entry)
-                              // DO SOMETHING WITH FILES
-                              return entry;
-                          } else {
-                              // DO SOMETHING WITH DIRECTORIES
-                              return traverseDirectory(entry);
-                          }
-                      })));
-                      // Try calling readEntries() again for the same dir, according to spec
-                      readEntries();
-                  }
-              }, (err) => console.log('err occured!', err) );
-          })();
-      });
-    }
-
-    traverseDirectory(dirfirst).then(() => {
-      console.log('traversed!', 'ALLFILES', files)
-    })
-
-    // function readDirEntries(dir){
-    //   let dirReader = dir.createReader()
-    //   dirReader.readEntries((entries) => {
-    //     console.log('entries', entries)
-    //     if (!entries.length){
-    //       console.log('cb called!')
-    //       console.log('files', files)
-    //       cb(files)
-    //     }
-    //     entries.forEach(entry => {
-    //       if (entry.isFile){
-    //         files.push(entry)
-    //         // entry.file((file) => {
-    //         //   file.fullPath = entry.fullPath
-    //         //   files.push(file)
-    //         // })
-    //       }
-    //       if (entry.isDirectory){
-    //         readDirEntries(entry)
-    //       }
-    //     })
-    //     console.log('LASTTHING!')
-    //   })
-    // }
-    // readDirEntries(dirfirst)
-  }
-
-
-  function entryToFile(files, cb){
+  function entryToFile(files){
     let convertedFiles = []
-
-    files.forEach((entry, i) => {
-      entry.file(file => {
-        if (i === files.length - 1) {
-          console.log('cb2 called!')
-          cb(convertedFiles)
-        }
-        file.fullPath = entry.fullPath
-        convertedFiles.push(file)
+    return new Promise(resolve => {
+      files.forEach((entry, i) => {
+        entry.file(file => {
+          if (i === files.length - 1) {
+            console.log('return promise')
+            resolve(convertedFiles)
+          }
+          file.fullPath = entry.fullPath
+          convertedFiles.push(file)
+        })
       })
     })
   }
 
   function submitData(files){
+    return new Promise(resolve => {
+      let xhr = new XMLHttpRequest()
+      let formData = new FormData()
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4){
+          if (xhr.status === 200){
+            resolve(xhr.response)
+          } else {
+            reject(xhr.status)
+          }
+        }
+      }
+      xhr.open('POST', 'http://localhost:3000/upload', true)
+      xhr.setRequestHeader( 'Accept', 'application/json')
+      xhr.setRequestHeader( 'Cache-Control', 'no-cache')
+      xhr.setRequestHeader( 'X-Requested-With', 'XMLHttpRequest')
+      for (let i = 0; i < files.length; i++){
+        formData.append(`uploads${i}`, files[i])
+        formData.append('fullpath[]', files[i].fullPath)
+      }
 
-    console.log('finalfunccalled!')
-    let xhr = new XMLHttpRequest()
-    let formData = new FormData()
-    xhr.onload = (progressevent) => {
-      console.log('success', progressevent)
-    }
-    xhr.open('POST', 'http://localhost:3000/upload', true)
-    xhr.setRequestHeader( 'Accept', 'application/json')
-    xhr.setRequestHeader( 'Cache-Control', 'no-cache')
-    xhr.setRequestHeader( 'X-Requested-With', 'XMLHttpRequest')
-    for (let i = 0; i < files.length; i++){
-      formData.append(`uploads${i}`, files[i])
-      formData.append('fullpath[]', files[i].fullPath)
+      formData.append('route', $('#route').val())
+      xhr.send(formData)
+    })
+  }
+
+  async function createFilesArr(dirFirst){
+
+    let filesArr = []
+
+    let items  = await traverseDirectory(dirFirst)
+
+    for (let item of items){
+      if (item.isFile){
+        filesArr.push(item)
+      } else {
+        filesArr = filesArr.concat(await createFilesArr(item))
+      }
     }
 
-    formData.append('route', $('#route').val())
-    xhr.send(formData)
+    function traverseDirectory(dir){
+      let entriesArr = []
+      let reader = dir.createReader()
+      return new Promise(resolve => {
+        (function readEntries(){
+          reader.readEntries(entries => {
+            if (!entries.length){
+              resolve(entriesArr)
+            } else {
+              entries.forEach(entry => {
+                entriesArr.push(entry)
+              })
+              readEntries()
+            }
+          })
+        })()
+      })
+    }
+
+    return filesArr
   }
 
   $('#submit').click((e) => {
     e.preventDefault()
-    console.log('clicked!')
+    let dirElement = $('.directory')[0]
     createFilesArr(cwd)
-    // createFilesArr(cwd, (files) => {
-    //   entryToFile(files, submitData)
-    // })
+    .then(entries => {
+      return entryToFile(entries)
+    })
+    .then(files => {
+      return submitData(files)
+    })
+    .then((res) => {
+      alert('app successfully deployed!')
+      onClose(dirElement)
+    })
   })
 
-  function readDirectory(dirEntry, cb) {
-
-    var dirReader = dirEntry.createReader();
-    var entries = [];
-
-    // Call the reader.readEntries() until no more results are returned.
-    var readEntries = function() {
-
-       dirReader.readEntries(function(results) {
-         console.log('results!', results)
-        if (!results.length) {
-          console.log('entries!!!', entries)
-          cb(entries)
-        } else {
-          entries = entries.concat(toArray(results))
-          readEntries();
-        }
-      }, (err) => {
-        console.log('err occured!', err)
-      }
-    );
-    };
-    readEntries(); // Start reading dirs.
-  }
 
   const previewNode = document.querySelector('#template')
   previewNode.id = ''
@@ -306,6 +292,8 @@ $(() => {
     e.preventDefault()
 
     for (let i = 0; i < items.length; i++){
+
+      //if item is a file, webkitGetAsEntry() returns a FS file entry object or FS directory entry object
       let item = items[i].webkitGetAsEntry()
       if (item){
         // scanFiles(item, listing)

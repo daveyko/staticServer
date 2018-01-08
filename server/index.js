@@ -24,6 +24,7 @@ const storage = multer.diskStorage({
 
 const ensureDirectoryExistence = (filePath, route) => {
   const dirname = path.dirname(filePath)
+  console.log('DIRNAME!', dirname)
   if (fs.existsSync(path.join(__dirname, '..', 'public', route,  dirname))){
     return true
   }
@@ -54,9 +55,10 @@ app.post('/upload', upload, (req, res, next) => {
         })
       },
       function (data, callback){
-        console.log('firstarg', req.body.fullpath[idx])
-        ensureDirectoryExistence(req.body.fullpath[idx], req.body.route)
-        fs.writeFile(path.join(__dirname, '..', 'public', req.body.route, req.body.fullpath[idx]), data, (err) => {
+
+        let editedPath = req.body.fullpath[idx]
+        ensureDirectoryExistence(editedPath.slice(editedPath.indexOf('/', editedPath.indexOf('/') + 1)), req.body.route)
+        fs.writeFile(path.join(__dirname, '..', 'public', req.body.route, editedPath.slice(editedPath.indexOf('/', editedPath.indexOf('/') + 1))), data, (err) => {
           if (err) {console.log('error occured in write!', err)}
           else {
           callback(null, 'success')
