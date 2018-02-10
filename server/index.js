@@ -8,11 +8,13 @@ let app = express()
 const Promise = require('bluebird')
 const cmd = require('node-cmd')
 const mkdir = Promise.promisify(fs.mkdir)
-const stat = Promise.promisify(fs.stat)
+
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false}))
 
+//middleware which handles where the uploaded files should be stored temporarily
+//to be deleted as these files have names assigned by multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (!fs.existsSync(path.join(__dirname, '..', 'public', 'temp'))){
@@ -23,25 +25,28 @@ const storage = multer.diskStorage({
 })
 
 const ensureDirectoryExistence = (filePath, route) => {
+  //get directory of filepath
   const dirname = path.dirname(filePath)
-  console.log('DIRNAME!', dirname)
+  //check if directory exists
   if (fs.existsSync(path.join(__dirname, '..', 'public', route,  dirname))){
     return true
   }
+  //if directory does not exist, recursively call function to check if directory one level up exists
   ensureDirectoryExistence(dirname, route)
+  //when all the outer directories have been created or confirmed to exists, create the inner directory
   fs.mkdirSync(path.join(__dirname, '..', 'public', route, dirname))
 }
 
 const upload = multer({storage}).any()
-
+//serve up files in public directory
 app.use(express.static(path.join(__dirname, '..', 'public')))
-
+//send homepage file initially
 app.get('/', (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public/homepage/' ))
 })
 
 app.post('/upload', upload, (req, res, next) => {
-  console.log('here!', req.body, req.files)
+  //make the initial outermost directory
   mkdir(path.join(__dirname, '..', 'public', req.body.route))
   .then(() => {
   async.forEachOf(req.files, function(file, idx, eachcallback){
