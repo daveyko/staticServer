@@ -1,5 +1,4 @@
 
-
 $(() => {
 
   let fs
@@ -40,7 +39,7 @@ $(() => {
               readEntries();
             }
           }, (err) => {
-            console.log('err occured!', err)
+            console.error('err occured!', err)
           }
         );
         };
@@ -75,12 +74,12 @@ $(() => {
         div.dataset.fullPath = entry.fullPath
         let img = new Image()
         if (entry.isDirectory) {
-          img.src = '../Folder-icon.png'
+          img.src = '../images/Folder-icon.png'
           div.className = 'directory'
           div.dataset.isDirectory = 'true'
         } else {
           div.className = 'file'
-          img.src = '../file.png'
+          img.src = '../images/file.png'
         }
         img.title = entry.name
         let span = document.createElement('span')
@@ -136,7 +135,7 @@ $(() => {
         $('#submit').css('display', 'none')
       }) : entry.remove(() => {})
     })
-    .catch(err => console.log(err))
+    .catch(err => console.error(err))
   }
 
   function onThumbNailClick(e){
@@ -144,14 +143,14 @@ $(() => {
     if (el.className === 'nav'){
       getEntry(cwd.fullPath + '/..')
       .then(renderImages)
-      .catch(console.log)
+      .catch(console.error)
     }
     else {
       let isDirectory = Boolean(el.dataset.isDirectory)
       if (isDirectory){
       getEntry(el.dataset.fullPath)
       .then(renderImages)
-      .catch(console.log)
+      .catch(console.error)
     }
   }
 }
@@ -167,7 +166,6 @@ $(() => {
       files.forEach((entry, i) => {
         entry.file(file => {
           if (i === files.length - 1) {
-            console.log('return promise')
             resolve(convertedFiles)
           }
           file.fullPath = entry.fullPath
@@ -302,77 +300,11 @@ $(() => {
           })
       }
     }
-
     $('#route').css('display', 'block')
     $('#submit').css('display', 'block')
     $('#dropzone').addClass('dropped')
     $('#dropzone').removeClass('dropped')
     $('#previews').css('display', 'none')
   })
-
-
-  // const scanFiles = (item, container) => {
-  //   let elem = document.createElement('li')
-  //   elem.innerHTML = item.name
-  //   container.appendChild(elem)
-
-  //   item.copyTo(cwd, null, () => {
-  //     readDirectory(cwd, function(entries){
-  //       console.log('entries', entries)
-  //     })
-  //   })
-
-  //   if (item.isDirectory){
-
-  //     let directoryReader = item.createReader()
-  //     let directoryContainer = document.createElement('ul')
-  //     container.appendChild(directoryContainer)
-
-  //     directoryReader.readEntries(entries => {
-  //       entries.forEach(entry => {
-  //         scanFiles(entry, directoryContainer)
-  //       })
-  //     })
-  //   }
-  // }
-
-
-  // zdrop.on('sending', (file, xhr, formData) => {
-  //   console.log('sending!')
-  //   console.log('fullpath!', file)
-  //   formData.append('route', $('#route').val())
-  //   formData.append('fullpath', file.fullPath)
-  // })
-
-  // zdrop.on('addedfile', (file) => {
-  //   console.log('file!', file)
-  // })
-
-  // function handleSubmit(e){
-  //   e.preventDefault()
-  //   const form = $('#files')
-  //   console.log('form', form)
-  //   const formData = new FormData(form)
-  //   console.log(formData)
-  //   $.ajax({
-  //     url: '/upload',
-  //     type: 'POST',
-  //     data: formData,
-  //     cache: false,
-  //     contentType: false,
-  //     processData: false
-  //   })
-  // }
-
-  // $('#submit').click((e) => {
-  //   console.log('clicked!')
-  //   e.preventDefault()
-  //   e.stopPropagation()
-  //   console.log('!!!!!!!!!', zdrop.getQueuedFiles())
-  //   zdrop.processQueue()
-  //   // handleSubmit(e)
-  // })
-
-  // document.getElementById('post-button').addEventListener('click', handleSubmit)
 })
 

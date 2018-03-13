@@ -2,12 +2,13 @@ let express = require('express')
 const path = require('path')
 const multer = require('multer')
 const fs = require('fs')
-const async = require('async')
 const bodyParser = require('body-parser')
 let app = express()
 const Promise = require('bluebird')
 const cmd = require('node-cmd')
 const mkdir = Promise.promisify(fs.mkdir)
+const read = Promise.promisify(fs.readFile)
+const write = Promise.promisify(fs.writeFile)
 
 
 app.use(bodyParser.json())
@@ -45,49 +46,36 @@ app.get('/', (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public/homepage/' ))
 })
 
-app.post('/upload', upload, (req, res, next) => {
+app.post('/upload', upload, async (req, res, next) => {
   //make the initial outermost directory
-  mkdir(path.join(__dirname, '..', 'public', req.body.route))
-  .then(() => {
-  async.forEachOf(req.files, function(file, idx, eachcallback){
-    async.waterfall([
-      function(callback){
-        fs.readFile(file.path, (err, data) => {
-          if (err) {console.log('err occured', err)}
-          else {
-            callback(null, data)
-          }
-        })
-      },
-      function (data, callback){
-
-        let editedPath = req.body.fullpath[idx]
+  await mkdir(path.join(__dirname, '..', 'public', req.body.route))
+  let readFile
+  let editedPath
+  try {
+    await Promise.all(req.files.map(async (file, idx) => {
+      try {
+        //read the file
+        readFile = await read(file.path)
+        editedPath = req.body.fullpath[idx]
+        //ensure directory/directories of the file exists
         ensureDirectoryExistence(editedPath.slice(editedPath.indexOf('/', editedPath.indexOf('/') + 1)), req.body.route)
-        fs.writeFile(path.join(__dirname, '..', 'public', req.body.route, editedPath.slice(editedPath.indexOf('/', editedPath.indexOf('/') + 1))), data, (err) => {
-          if (err) {console.log('error occured in write!', err)}
-          else {
-          callback(null, 'success')
-        }
-      })
-    }
-  ], function(err, result){
-    if (err){console.log('error in waterfall', err)}
-    else {
-      eachcallback()
-      console.log('done!', result)}
-  })
-  }, function(err){
-      if (err) {console.log('error occured in each', err)}
-      else {
-        console.log('finished processing!')
-        cmd.run(`rm -rf ${path.join(__dirname, '..', 'public', 'temp')}`)
-        res.sendStatus(200)
+        //write file to appropriate directory
+        await write(path.join(__dirname, '..', 'public', req.body.route, editedPath.slice(editedPath.indexOf('/', editedPath.indexOf('/') + 1))), readFile)
       }
-  })
-})
-.catch(console.error)
+      catch(err){
+        console.error('error occured in file read/write', err)
+      }
+    }))
+    //removes the temporary files created by multer diskstorage
+    cmd.run(`rm -rf ${path.join(__dirname, '..', 'public', 'temp')}`)
+    res.sendStatus(200)
+  }
+  catch(err){
+    console.error('error in promise.all', err)
+  }
 })
 
+//directs server to serve up different directories(static sites) as subroutes
 app.get('/public/:dirname', (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public/', req.params.dirname, '/'))
 })
